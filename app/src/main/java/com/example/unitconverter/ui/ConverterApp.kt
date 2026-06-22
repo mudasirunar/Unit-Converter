@@ -9,6 +9,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,19 +26,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.unitconverter.data.CurrencyViewModel
+import com.example.unitconverter.data.formatValue
 import com.example.unitconverter.ui.components.SearchSheetContent
 import com.example.unitconverter.ui.components.UnitConverterCard
 import com.example.unitconverter.ui.theme.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ConverterApp(viewModel: CurrencyViewModel) {
+fun ConverterApp(
+    viewModel: CurrencyViewModel,
+    isDarkTheme: Boolean,
+    onThemeChanged: (Boolean) -> Unit
+) {
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val currencyViewRequester = remember { BringIntoViewRequester() }
     
-    // States for Currency conversion
-    var amountInput by remember { mutableStateOf("1.0") }
+    // States for Currency conversion - Default USD to PKR
+    var amountInput by remember { mutableStateOf("1") }
     var fromCurrency by remember { mutableStateOf("USD") }
-    var toCurrency by remember { mutableStateOf("EUR") }
+    var toCurrency by remember { mutableStateOf("PKR") }
     
     // Bottom sheet controls
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -46,39 +61,48 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
     // Rotate state for swap button
     var rotationAngle by remember { mutableStateOf(0f) }
 
+    // Dynamic Theme Colors
+    val cardBg = if (isDarkTheme) SlateDarkCard else SlateLightCard
+    val cardBorder = if (isDarkTheme) BorderDark else BorderLight
+    val textPrimary = if (isDarkTheme) TextDarkPrimary else TextLightPrimary
+    val textSecondary = if (isDarkTheme) TextDarkSecondary else TextLightSecondary
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(20.dp)
+            .statusBarsPadding()
             .navigationBarsPadding()
-            .statusBarsPadding(),
+            .imePadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Title Header
-        Text(
-            text = "OmniConverter",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextPrimary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
-        )
-        Text(
-            text = "Beautiful converter with offline support",
-            fontSize = 14.sp,
-            color = TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        // App Title Header Row with Theme Toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Unit Converter",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = textPrimary
+            )
+            
+            ThemeToggle(isDarkTheme = isDarkTheme, onThemeChanged = onThemeChanged)
+        }
 
         // 1. Currency Exchange Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, CardBorder, RoundedCornerShape(24.dp))
-                .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = CardBg)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(24.dp))
+                .bringIntoViewRequester(currencyViewRequester),
+            colors = CardDefaults.cardColors(containerColor = cardBg)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -93,7 +117,7 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                         text = "Currency Exchange",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = textPrimary
                     )
                     IconButton(
                         onClick = { viewModel.fetchRates() },
@@ -126,8 +150,8 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Text(
-                            text = viewModel.errorMessage ?: "Failed to sync exchange rates. Please check your internet connection and try again.",
-                            color = TextSecondary,
+                            text = viewModel.errorMessage ?: "Failed to sync exchange rates. Please check your internet connection.",
+                            color = textSecondary,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(bottom = 20.dp, start = 16.dp, end = 16.dp)
@@ -136,7 +160,7 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                             onClick = { viewModel.fetchRates() },
                             colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary)
                         ) {
-                            Text("Try Again", color = TextPrimary)
+                            Text("Try Again", color = TextDarkPrimary)
                         }
                     }
                 } else {
@@ -146,18 +170,27 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                     OutlinedTextField(
                         value = amountInput,
                         onValueChange = { amountInput = it },
-                        label = { Text("Amount", color = TextSecondary) },
+                        label = { Text("Amount", color = textSecondary) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
                             imeAction = ImeAction.Done
                         ),
-                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontSize = 18.sp),
+                        textStyle = LocalTextStyle.current.copy(color = textPrimary, fontSize = 18.sp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = IndigoPrimary,
-                            unfocusedBorderColor = CardBorder,
+                            unfocusedBorderColor = cardBorder,
                             focusedLabelColor = IndigoPrimary
                         ),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    coroutineScope.launch {
+                                        delay(300)
+                                        currencyViewRequester.bringIntoView()
+                                    }
+                                }
+                            },
                         singleLine = true
                     )
 
@@ -173,12 +206,13 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(cardBorder)
                                 .clickable {
                                     selectSource = true
                                     searchQuery = ""
                                     showBottomSheet = true
                                 }
-                                .background(CardBorder, RoundedCornerShape(12.dp))
                                 .padding(12.dp)
                         ) {
                             Row(
@@ -187,10 +221,10 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column {
-                                    Text("From", fontSize = 11.sp, color = TextSecondary)
-                                    Text(fromCurrency, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                    Text("From", fontSize = 11.sp, color = textSecondary)
+                                    Text(fromCurrency, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textPrimary)
                                 }
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = TextSecondary)
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = textSecondary)
                             }
                         }
 
@@ -200,15 +234,16 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessLow
+                            )
                         )
-                    )
 
                         Box(
                             modifier = Modifier
                                 .padding(horizontal = 8.dp)
                                 .size(40.dp)
                                 .rotate(animatedRotation)
-                                .background(IndigoPrimary, RoundedCornerShape(50))
+                                .clip(RoundedCornerShape(50))
+                                .background(IndigoPrimary)
                                 .clickable {
                                     rotationAngle += 180f
                                     val temp = fromCurrency
@@ -219,7 +254,7 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                         ) {
                             Text(
                                 text = "⇄",
-                                color = TextPrimary,
+                                color = TextDarkPrimary,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
@@ -230,12 +265,13 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(cardBorder)
                                 .clickable {
                                     selectSource = false
                                     searchQuery = ""
                                     showBottomSheet = true
                                 }
-                                .background(CardBorder, RoundedCornerShape(12.dp))
                                 .padding(12.dp)
                         ) {
                             Row(
@@ -244,10 +280,10 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column {
-                                    Text("To", fontSize = 11.sp, color = TextSecondary)
-                                    Text(toCurrency, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                    Text("To", fontSize = 11.sp, color = textSecondary)
+                                    Text(toCurrency, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textPrimary)
                                 }
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = TextSecondary)
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = textSecondary)
                             }
                         }
                     }
@@ -272,22 +308,25 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    Brush.horizontalGradient(listOf(IndigoPrimary.copy(alpha = 0.1f), VioletSecondary.copy(alpha = 0.1f))),
+                                    Brush.horizontalGradient(listOf(IndigoPrimary.copy(alpha = 0.1f), AccentTeal.copy(alpha = 0.1f))),
                                     RoundedCornerShape(16.dp)
                                 )
                                 .padding(16.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = String.format("%.2f %s = ", amount, fromCurrency),
+                                    text = "${formatValue(amount)} $fromCurrency =",
                                     fontSize = 14.sp,
-                                    color = TextSecondary
+                                    color = textSecondary,
+                                    textAlign = TextAlign.Center
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = String.format("%.4f %s", result, toCurrency),
+                                    text = "${formatValue(result)} $toCurrency",
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = textPrimary,
+                                    textAlign = TextAlign.Center
                                 )
                                 // If sync failed but we are displaying cached values, show a non-intrusive warning tag
                                 if (viewModel.isUsingOfflineRates) {
@@ -296,11 +335,15 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                                         text = "⚠️ Offline Rates (cached)",
                                         color = AccentTeal,
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
                         }
+                        
+                        // Push result area higher above the keyboard when focused
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -310,13 +353,16 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
 
         // 2. Other Unit Converters section
         UnitConverterCard()
+
+        // Extra bottom spacing to allow scrolling past elements easily
+        Spacer(modifier = Modifier.height(24.dp))
     }
 
     // Currency Picker Bottom Sheet
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
-            containerColor = BottomSheetBg
+            containerColor = if (isDarkTheme) SlateDarkBgStart else SlateLightBgStart
         ) {
             SearchSheetContent(
                 query = searchQuery,
@@ -329,7 +375,57 @@ fun ConverterApp(viewModel: CurrencyViewModel) {
                         toCurrency = rate.code
                     }
                     showBottomSheet = false
-                }
+                },
+                isDarkTheme = isDarkTheme
+            )
+        }
+    }
+}
+
+@Composable
+fun ThemeToggle(
+    isDarkTheme: Boolean,
+    onThemeChanged: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (isDarkTheme) BorderDark else BorderLight)
+            .clickable { onThemeChanged(!isDarkTheme) }
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Sun Icon (Light Theme)
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (!isDarkTheme) AccentAmber else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.WbSunny,
+                contentDescription = "Light Theme",
+                tint = if (!isDarkTheme) TextLightPrimary else TextDarkTertiary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(4.dp))
+        
+        // Moon Icon (Dark Theme)
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (isDarkTheme) IndigoPrimary else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.NightsStay,
+                contentDescription = "Dark Theme",
+                tint = if (isDarkTheme) TextDarkPrimary else TextLightTertiary,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

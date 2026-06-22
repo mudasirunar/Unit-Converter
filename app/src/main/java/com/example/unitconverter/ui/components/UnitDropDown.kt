@@ -1,9 +1,11 @@
 package com.example.unitconverter.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
@@ -21,16 +23,25 @@ fun UnitDropDown(
     label: String,
     selectedUnit: ConversionUnit,
     units: List<ConversionUnit>,
-    onUnitSelected: (ConversionUnit) -> Unit
+    onUnitSelected: (ConversionUnit) -> Unit,
+    isDark: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    val containerBg = if (isDark) SlateDarkCard else SlateLightCard
+    val borderCol = if (isDark) BorderDark else BorderLight
+    val menuBg = if (isDark) SlateDarkBgStart else SlateLightCard
+    val labelColor = if (isDark) TextDarkSecondary else TextLightSecondary
+    val textColor = if (isDark) TextDarkPrimary else TextLightPrimary
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(containerBg)
+            .border(1.dp, borderCol, RoundedCornerShape(12.dp))
             .clickable { expanded = true }
-            .background(CardBorder, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -38,24 +49,42 @@ fun UnitDropDown(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                Text(label, fontSize = 11.sp, color = TextSecondary)
-                Text(selectedUnit.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(label, fontSize = 11.sp, color = labelColor, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(selectedUnit.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor)
             }
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = TextSecondary)
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = labelColor,
+                modifier = Modifier.size(20.dp)
+            )
         }
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(BottomSheetBg)
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(menuBg)
+                .border(1.dp, borderCol, RoundedCornerShape(12.dp)),
+            shape = RoundedCornerShape(12.dp)
         ) {
             units.forEach { unit ->
                 DropdownMenuItem(
-                    text = { Text(unit.name, color = TextPrimary) },
+                    text = { 
+                        Text(
+                            text = unit.name, 
+                            color = textColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ) 
+                    },
                     onClick = {
                         onUnitSelected(unit)
                         expanded = false
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
