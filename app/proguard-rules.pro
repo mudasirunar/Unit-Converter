@@ -5,17 +5,16 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Gson serialization annotations and class members
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep Retrofit classes and API interface methods
+-keep class retrofit2.** { *; }
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepclassmembers interface * {
+    @retrofit2.http.* <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep our data models, room entities, DAOs, view models, and repository classes
+-keep class com.example.unitconverter.data.** { *; }
+-keepclassmembers class com.example.unitconverter.data.** { *; }
