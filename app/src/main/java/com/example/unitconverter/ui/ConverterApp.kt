@@ -37,6 +37,12 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -63,6 +69,25 @@ fun ConverterApp(
     // Rotate state for swap button
     var rotationAngle by remember { mutableStateOf(0f) }
 
+    var currencyResultSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
+    val currencyInteractionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(currencyInteractionSource) {
+        currencyInteractionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                delay(400)
+                val width = currencyResultSize.width.toFloat()
+                val height = currencyResultSize.height.toFloat()
+                val extraPx = with(density) { 48.dp.toPx() }
+                currencyViewRequester.bringIntoView(
+                    Rect(0f, 0f, width, height + extraPx)
+                )
+            }
+        }
+    }
+
     // Dynamic Theme Colors
     val cardBg = if (isDarkTheme) SlateDarkCard else SlateLightCard
     val cardBorder = if (isDarkTheme) BorderDark else BorderLight
@@ -72,11 +97,11 @@ fun ConverterApp(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(20.dp)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .imePadding(),
+            .imePadding()
+            .verticalScroll(scrollState)
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // App Title Header Row with Theme Toggle
@@ -102,8 +127,7 @@ fun ConverterApp(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
-                .clip(RoundedCornerShape(24.dp))
-                .bringIntoViewRequester(currencyViewRequester),
+                .clip(RoundedCornerShape(24.dp)),
             colors = CardDefaults.cardColors(containerColor = cardBg)
         ) {
             Column(
@@ -183,13 +207,19 @@ fun ConverterApp(
                             unfocusedBorderColor = cardBorder,
                             focusedLabelColor = IndigoPrimary
                         ),
+                        interactionSource = currencyInteractionSource,
                         modifier = Modifier
                             .fillMaxWidth()
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
                                     coroutineScope.launch {
-                                        delay(300)
-                                        currencyViewRequester.bringIntoView()
+                                        delay(400)
+                                        val width = currencyResultSize.width.toFloat()
+                                        val height = currencyResultSize.height.toFloat()
+                                        val extraPx = with(density) { 48.dp.toPx() }
+                                        currencyViewRequester.bringIntoView(
+                                            Rect(0f, 0f, width, height + extraPx)
+                                        )
                                     }
                                 }
                             },
@@ -314,6 +344,10 @@ fun ConverterApp(
                                     RoundedCornerShape(16.dp)
                                 )
                                 .padding(16.dp)
+                                .bringIntoViewRequester(currencyViewRequester)
+                                .onGloballyPositioned { coordinates ->
+                                    currencyResultSize = coordinates.size
+                                }
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                                 Text(
@@ -345,7 +379,7 @@ fun ConverterApp(
                         }
                         
                         // Push result area higher above the keyboard when focused
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }

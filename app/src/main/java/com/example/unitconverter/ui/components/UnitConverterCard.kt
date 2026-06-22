@@ -42,6 +42,12 @@ import com.example.unitconverter.ui.theme.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -171,11 +177,29 @@ fun UnitConverterPageContent(
     val selectedFromUnit = categoryState.selectedFromUnit
     val selectedToUnit = categoryState.selectedToUnit
 
+    var unitResultSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
+    val unitInteractionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(unitInteractionSource) {
+        unitInteractionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                delay(400)
+                val width = unitResultSize.width.toFloat()
+                val height = unitResultSize.height.toFloat()
+                val extraPx = with(density) { 48.dp.toPx() }
+                unitViewRequester.bringIntoView(
+                    Rect(0f, 0f, width, height + extraPx)
+                )
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 260.dp)
-            .bringIntoViewRequester(unitViewRequester)
     ) {
         // Value Input field
         OutlinedTextField(
@@ -192,13 +216,19 @@ fun UnitConverterPageContent(
                 unfocusedBorderColor = cardBorder,
                 focusedLabelColor = AccentTeal
             ),
+            interactionSource = unitInteractionSource,
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
                         coroutineScope.launch {
-                            delay(300)
-                            unitViewRequester.bringIntoView()
+                            delay(400)
+                            val width = unitResultSize.width.toFloat()
+                            val height = unitResultSize.height.toFloat()
+                            val extraPx = with(density) { 48.dp.toPx() }
+                            unitViewRequester.bringIntoView(
+                                Rect(0f, 0f, width, height + extraPx)
+                            )
                         }
                     }
                 },
@@ -282,6 +312,10 @@ fun UnitConverterPageContent(
                     RoundedCornerShape(16.dp)
                 )
                 .padding(16.dp)
+                .bringIntoViewRequester(unitViewRequester)
+                .onGloballyPositioned { coordinates ->
+                    unitResultSize = coordinates.size
+                }
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -303,8 +337,8 @@ fun UnitConverterPageContent(
                 )
             }
         }
-
+        
         // Push result area higher above the keyboard when focused
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

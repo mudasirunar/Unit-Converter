@@ -21,6 +21,7 @@ import com.example.unitconverter.ui.components.GradientBackground
 import com.example.unitconverter.ui.theme.UnitConverterTheme
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import androidx.core.view.WindowCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
