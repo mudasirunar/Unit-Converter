@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -172,6 +174,7 @@ fun UnitConverterPageContent(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val unitViewRequester = remember { BringIntoViewRequester() }
+    val view = LocalView.current
 
     val valueInput = categoryState.valueInput
     val selectedFromUnit = categoryState.selectedFromUnit
@@ -271,6 +274,7 @@ fun UnitConverterPageContent(
                     .clip(RoundedCornerShape(50))
                     .background(AccentTeal)
                     .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         rotationAngle += 180f
                         onSwap()
                     },

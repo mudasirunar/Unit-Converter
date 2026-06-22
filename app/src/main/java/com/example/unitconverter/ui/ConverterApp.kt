@@ -1,28 +1,76 @@
 package com.example.unitconverter.ui
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.unitconverter.data.CurrencyViewModel
@@ -30,19 +78,23 @@ import com.example.unitconverter.data.UnitConverterViewModel
 import com.example.unitconverter.data.formatValue
 import com.example.unitconverter.ui.components.SearchSheetContent
 import com.example.unitconverter.ui.components.UnitConverterCard
-import com.example.unitconverter.ui.theme.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.ui.focus.onFocusChanged
+import com.example.unitconverter.ui.theme.AccentAmber
+import com.example.unitconverter.ui.theme.AccentTeal
+import com.example.unitconverter.ui.theme.BorderDark
+import com.example.unitconverter.ui.theme.BorderLight
+import com.example.unitconverter.ui.theme.IndigoPrimary
+import com.example.unitconverter.ui.theme.SlateDarkBgStart
+import com.example.unitconverter.ui.theme.SlateDarkCard
+import com.example.unitconverter.ui.theme.SlateLightBgStart
+import com.example.unitconverter.ui.theme.SlateLightCard
+import com.example.unitconverter.ui.theme.TextDarkPrimary
+import com.example.unitconverter.ui.theme.TextDarkSecondary
+import com.example.unitconverter.ui.theme.TextDarkTertiary
+import com.example.unitconverter.ui.theme.TextLightPrimary
+import com.example.unitconverter.ui.theme.TextLightSecondary
+import com.example.unitconverter.ui.theme.TextLightTertiary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -55,6 +107,7 @@ fun ConverterApp(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val currencyViewRequester = remember { BringIntoViewRequester() }
+    val view = LocalView.current
     
     // States for Currency conversion - Default USD to PKR
     var amountInput by remember { mutableStateOf("1") }
@@ -146,7 +199,10 @@ fun ConverterApp(
                         color = textPrimary
                     )
                     IconButton(
-                        onClick = { viewModel.fetchRates() },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            viewModel.fetchRates()
+                        },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
@@ -277,6 +333,7 @@ fun ConverterApp(
                                 .clip(RoundedCornerShape(50))
                                 .background(IndigoPrimary)
                                 .clickable {
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     rotationAngle += 180f
                                     val temp = fromCurrency
                                     fromCurrency = toCurrency
@@ -423,11 +480,15 @@ fun ThemeToggle(
     isDarkTheme: Boolean,
     onThemeChanged: (Boolean) -> Unit
 ) {
+    val view = LocalView.current
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(if (isDarkTheme) BorderDark else BorderLight)
-            .clickable { onThemeChanged(!isDarkTheme) }
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onThemeChanged(!isDarkTheme)
+            }
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
