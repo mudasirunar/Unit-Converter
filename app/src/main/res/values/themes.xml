@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- Default App Theme -->
     <style name="Theme.UnitConverter" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Splash Screen Theme (Light Mode Default) -->
+    <style name="Theme.UnitConverter.Splash" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_background_light</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
 </resources>
