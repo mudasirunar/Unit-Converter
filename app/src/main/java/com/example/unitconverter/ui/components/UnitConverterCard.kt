@@ -32,9 +32,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.unitconverter.data.ConversionCategory
+import com.example.unitconverter.data.ConversionUnit
 import com.example.unitconverter.data.convertUnits
 import com.example.unitconverter.data.getConversionData
 import com.example.unitconverter.data.formatValue
+import com.example.unitconverter.data.UnitConverterViewModel
+import com.example.unitconverter.data.UnitCategoryState
 import com.example.unitconverter.ui.theme.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalFocusManager
@@ -42,7 +45,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun UnitConverterCard() {
+fun UnitConverterCard(unitViewModel: UnitConverterViewModel) {
     val categories = getConversionData()
     val pagerState = rememberPagerState { categories.size }
     val coroutineScope = rememberCoroutineScope()
@@ -121,8 +124,22 @@ fun UnitConverterCard() {
                 pageSpacing = 16.dp
             ) { page ->
                 val category = categories[page]
+                val categoryState = unitViewModel.getCategoryState(category)
                 UnitConverterPageContent(
                     category = category,
+                    categoryState = categoryState,
+                    onValueChange = { value ->
+                        unitViewModel.updateValueInput(category.title, value)
+                    },
+                    onFromUnitSelected = { unit ->
+                        unitViewModel.updateSelectedFromUnit(category.title, unit)
+                    },
+                    onToUnitSelected = { unit ->
+                        unitViewModel.updateSelectedToUnit(category.title, unit)
+                    },
+                    onSwap = {
+                        unitViewModel.swapUnits(category.title)
+                    },
                     textPrimary = textPrimary,
                     textSecondary = textSecondary,
                     cardBorder = cardBorder,
@@ -137,16 +154,22 @@ fun UnitConverterCard() {
 @Composable
 fun UnitConverterPageContent(
     category: ConversionCategory,
+    categoryState: UnitCategoryState,
+    onValueChange: (String) -> Unit,
+    onFromUnitSelected: (ConversionUnit) -> Unit,
+    onToUnitSelected: (ConversionUnit) -> Unit,
+    onSwap: () -> Unit,
     textPrimary: Color,
     textSecondary: Color,
     cardBorder: Color,
     isDark: Boolean
 ) {
-    var valueInput by remember { mutableStateOf("1") }
-    var selectedFromUnit by remember(category) { mutableStateOf(getDefaultFromUnit(category)) }
-    var selectedToUnit by remember(category) { mutableStateOf(getDefaultToUnit(category)) }
     val coroutineScope = rememberCoroutineScope()
     val unitViewRequester = remember { BringIntoViewRequester() }
+
+    val valueInput = categoryState.valueInput
+    val selectedFromUnit = categoryState.selectedFromUnit
+    val selectedToUnit = categoryState.selectedToUnit
 
     Column(
         modifier = Modifier
@@ -157,7 +180,7 @@ fun UnitConverterPageContent(
         // Value Input field
         OutlinedTextField(
             value = valueInput,
-            onValueChange = { valueInput = it },
+            onValueChange = onValueChange,
             label = { Text("Value to Convert", color = textSecondary) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -196,7 +219,7 @@ fun UnitConverterPageContent(
                     label = "From",
                     selectedUnit = selectedFromUnit,
                     units = category.units,
-                    onUnitSelected = { selectedFromUnit = it },
+                    onUnitSelected = onFromUnitSelected,
                     isDark = isDark
                 )
             }
@@ -219,9 +242,7 @@ fun UnitConverterPageContent(
                     .background(AccentTeal)
                     .clickable {
                         rotationAngle += 180f
-                        val temp = selectedFromUnit
-                        selectedFromUnit = selectedToUnit
-                        selectedToUnit = temp
+                        onSwap()
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -240,7 +261,7 @@ fun UnitConverterPageContent(
                     label = "To",
                     selectedUnit = selectedToUnit,
                     units = category.units,
-                    onUnitSelected = { selectedToUnit = it },
+                    onUnitSelected = onToUnitSelected,
                     isDark = isDark
                 )
             }
@@ -286,40 +307,4 @@ fun UnitConverterPageContent(
         // Push result area higher above the keyboard when focused
         Spacer(modifier = Modifier.height(24.dp))
     }
-}
-
-private fun getDefaultFromUnit(category: ConversionCategory): com.example.unitconverter.data.ConversionUnit {
-    val name = when (category.title) {
-        "Length" -> "Kilometers"
-        "Weight" -> "Kilograms"
-        "Temperature" -> "Celsius"
-        "Area" -> "Sq Meters"
-        "Volume" -> "Liters"
-        "Storage" -> "Gigabytes (GB)"
-        "Time" -> "Hours"
-        "Speed" -> "km/h"
-        "Energy" -> "Kilocalories (kcal)"
-        "Power" -> "Kilowatts (kW)"
-        "Pressure" -> "Psi"
-        else -> category.units[0].name
-    }
-    return category.units.firstOrNull { it.name == name } ?: category.units[0]
-}
-
-private fun getDefaultToUnit(category: ConversionCategory): com.example.unitconverter.data.ConversionUnit {
-    val name = when (category.title) {
-        "Length" -> "Meters"
-        "Weight" -> "Grams"
-        "Temperature" -> "Fahrenheit"
-        "Area" -> "Sq Feet"
-        "Volume" -> "Milliliters"
-        "Storage" -> "Megabytes (MB)"
-        "Time" -> "Minutes"
-        "Speed" -> "mph"
-        "Energy" -> "Kilojoules (kJ)"
-        "Power" -> "Horsepower (hp)"
-        "Pressure" -> "Bar"
-        else -> category.units.getOrElse(1) { category.units[0] }.name
-    }
-    return category.units.firstOrNull { it.name == name } ?: category.units.getOrElse(1) { category.units[0] }
 }

@@ -15,6 +15,7 @@ import com.example.unitconverter.data.AppDatabase
 import com.example.unitconverter.data.CurrencyApi
 import com.example.unitconverter.data.CurrencyRepository
 import com.example.unitconverter.data.CurrencyViewModel
+import com.example.unitconverter.data.UnitConverterViewModel
 import com.example.unitconverter.ui.ConverterApp
 import com.example.unitconverter.ui.components.GradientBackground
 import com.example.unitconverter.ui.theme.UnitConverterTheme
@@ -39,9 +40,13 @@ class MainActivity : ComponentActivity() {
         val repository = CurrencyRepository(api, db.currencyDao())
         
         setContent {
-            // Live theme state synced with SharedPreferences
+            // Detect if the device is currently in Dark Theme
+            val isSystemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == 
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+            // Live theme state synced with SharedPreferences, defaulting to system theme on first launch
             var isDarkTheme by remember {
-                mutableStateOf(sharedPrefs.getBoolean("dark_theme", true))
+                mutableStateOf(sharedPrefs.getBoolean("dark_theme", isSystemDark))
             }
 
             UnitConverterTheme(darkTheme = isDarkTheme) {
@@ -49,6 +54,7 @@ class MainActivity : ComponentActivity() {
                     this,
                     CurrencyViewModelFactory(repository)
                 )[CurrencyViewModel::class.java]
+                val unitViewModel: UnitConverterViewModel = ViewModelProvider(this)[UnitConverterViewModel::class.java]
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -57,6 +63,7 @@ class MainActivity : ComponentActivity() {
                     GradientBackground(isDarkTheme = isDarkTheme) {
                         ConverterApp(
                             viewModel = viewModel,
+                            unitViewModel = unitViewModel,
                             isDarkTheme = isDarkTheme,
                             onThemeChanged = { dark ->
                                 isDarkTheme = dark

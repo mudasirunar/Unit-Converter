@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.unitconverter.data.CurrencyViewModel
+import com.example.unitconverter.data.UnitConverterViewModel
 import com.example.unitconverter.data.formatValue
 import com.example.unitconverter.ui.components.SearchSheetContent
 import com.example.unitconverter.ui.components.UnitConverterCard
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ConverterApp(
     viewModel: CurrencyViewModel,
+    unitViewModel: UnitConverterViewModel,
     isDarkTheme: Boolean,
     onThemeChanged: (Boolean) -> Unit
 ) {
@@ -352,7 +354,7 @@ fun ConverterApp(
         Spacer(modifier = Modifier.height(24.dp))
 
         // 2. Other Unit Converters section
-        UnitConverterCard()
+        UnitConverterCard(unitViewModel = unitViewModel)
 
         // Extra bottom spacing to allow scrolling past elements easily
         Spacer(modifier = Modifier.height(24.dp))

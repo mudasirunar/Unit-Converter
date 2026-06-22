@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import com.example.unitconverter.data.ConversionUnit
 import com.example.unitconverter.ui.theme.*
 
@@ -48,11 +50,20 @@ fun UnitDropDown(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(label, fontSize = 11.sp, color = labelColor, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(selectedUnit.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text(
+                    text = selectedUnit.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                    maxLines = 2
+                )
             }
+            Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
@@ -71,20 +82,35 @@ fun UnitDropDown(
             shape = RoundedCornerShape(12.dp)
         ) {
             units.forEach { unit ->
+                val isSelected = unit == selectedUnit
+                val itemBgColor = if (isSelected) {
+                    if (isDark) IndigoPrimary.copy(alpha = 0.15f) else IndigoLight
+                } else {
+                    Color.Transparent
+                }
+                val itemTextColor = if (isSelected) {
+                    if (isDark) AccentTeal else IndigoPrimary
+                } else {
+                    textColor
+                }
+                val itemFontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+
                 DropdownMenuItem(
                     text = { 
                         Text(
                             text = unit.name, 
-                            color = textColor,
+                            color = itemTextColor,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = itemFontWeight
                         ) 
                     },
                     onClick = {
                         onUnitSelected(unit)
                         expanded = false
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(itemBgColor)
                 )
             }
         }
