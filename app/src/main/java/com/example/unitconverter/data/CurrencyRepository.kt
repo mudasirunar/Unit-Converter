@@ -33,7 +33,7 @@ class CurrencyRepository(private val api: CurrencyApi, private val dao: Currency
             dao.insertRates(mergedList)
             emit(mergedList)
         } catch (e: Exception) {
-            if (cached.isEmpty()) throw e
+            throw e
         }
     }
 }

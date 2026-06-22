@@ -11,6 +11,9 @@ import kotlinx.coroutines.launch
 class CurrencyViewModel(private val repository: CurrencyRepository) : ViewModel() {
     var rates by mutableStateOf<List<CurrencyRate>>(emptyList())
     var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+    var isUsingOfflineRates by mutableStateOf(false)
+
     private var cachedFilteredList by mutableStateOf<List<CurrencyRate>>(emptyList())
     private var lastQuery by mutableStateOf("")
 
@@ -19,11 +22,26 @@ class CurrencyViewModel(private val repository: CurrencyRepository) : ViewModel(
     fun fetchRates() {
         viewModelScope.launch {
             isLoading = true
-            repository.getRates().collect { rates = it }
+            errorMessage = null
+            isUsingOfflineRates = false
+            repository.getRates()
+                .catch { e ->
+                    if (rates.isNotEmpty() || cachedFilteredList.isNotEmpty()) {
+                        isUsingOfflineRates = true
+                        errorMessage = "Offline mode: Failed to sync latest rates."
+                    } else {
+                        errorMessage = "Network error: ${e.localizedMessage ?: "Failed to fetch rates."}"
+                    }
+                    isLoading = false
+                }
+                .collect {
+                    rates = it
+                    isUsingOfflineRates = false
+                    errorMessage = null
+                }
             isLoading = false
         }
     }
-
 
     fun getFilteredRates(query: String): List<CurrencyRate> {
         if (query == lastQuery && cachedFilteredList.isNotEmpty()) return cachedFilteredList
